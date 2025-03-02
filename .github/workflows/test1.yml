@@ -55,7 +55,12 @@ jobs:
       - name: Run ScanCode on Frontend
         run: |
           cd scancode-toolkit
-          ./scancode --json scancode-results.json ../Frontend
+          # ./scancode --json scancode-results.json ../Frontend
+          ./scancode --json ../scancode-results.json ../Frontend/ || (echo "ScanCode failed!" && exit 1)
+          
+      - name: Debug - Check if results file exists
+        run: ls -l scancode-results.json || echo "scancode-results.json NOT FOUND"
+
 
       - name: Upload Scan Results
         uses: actions/upload-artifact@v4
