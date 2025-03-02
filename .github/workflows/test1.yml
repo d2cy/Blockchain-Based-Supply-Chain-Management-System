@@ -18,13 +18,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # - name: Set up Node.js
-      #   uses: actions/setup-node@v4
-      #   with:
-      #     node-version: 18
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-      # - name: Install Project Dependencies
-      #   run: npm install
+      - name: Install Project Dependencies
+        run: npm install ./Frontend/
 
       - name: Install Python 3.10
         uses: actions/setup-python@v4
@@ -57,11 +57,11 @@ jobs:
           cd scancode-toolkit
           ./scancode --json scancode-results.json ../Frontend
 
-      # - name: Upload Scan Results
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: scancode-results
-      #     path: scancode-results.json
+      - name: Upload Scan Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: scancode-results
+          path: scancode-results.json
 
       - name: Check Scan Results for Issues
         run: |
