@@ -26,7 +26,7 @@ jobs:
       - name: Install ScanCode Dependencies
         run: |
           sudo apt-get update && sudo apt-get upgrade -y
-          sudo apt install -y python-dev bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
+          sudo apt install -y bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
           sudo add-apt-repository ppa:deadsnakes/ppa --yes
           sudo apt-get install -y python3.9 python3.9-distutils
 
