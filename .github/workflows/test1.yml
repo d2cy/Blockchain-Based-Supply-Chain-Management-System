@@ -26,18 +26,18 @@ jobs:
       # - name: Install Project Dependencies
       #   run: npm install ~/Frontend
 
-      - name: Install ScanCode Dependencies
-        run: |
-          sudo apt-get update && sudo apt-get upgrade -y
-          sudo apt install -y bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
-          sudo add-apt-repository ppa:deadsnakes/ppa --yes
-          sudo apt-get install -y python3.9 python3.9-distutils
+      # - name: Install ScanCode Dependencies
+      #   run: |
+      #     sudo apt-get update && sudo apt-get upgrade -y
+      #     sudo apt install -y bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
+      #     sudo add-apt-repository ppa:deadsnakes/ppa --yes
+      #     sudo apt-get install -y python3.9 python3.9-distutils
 
       - name: Download ScanCode Toolkit
         run: |
           wget https://github.com/aboutcode-org/scancode-toolkit/releases/download/v32.3.2/scancode-toolkit-v32.3.2_py3.10-linux.tar.gz
           tar -xzf scancode-toolkit-v32.3.2_py3.10-linux.tar.gz
-          chmod +x scancode-toolkit-v32.3./scancode
+          chmod +x scancode-toolkit-v32.3.2/scancode
 
       - name: Run ScanCode on Frontend
         run: |
