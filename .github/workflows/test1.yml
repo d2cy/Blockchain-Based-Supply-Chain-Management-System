@@ -24,7 +24,7 @@ jobs:
           node-version: 18
 
       - name: Install Project Dependencies
-        run: npm install
+        run: npm install ~/Frontend
 
       - name: Install ScanCode Dependencies
         run: |
