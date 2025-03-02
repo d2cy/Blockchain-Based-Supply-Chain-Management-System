@@ -1,57 +1,115 @@
-name: Frontend License & Security Scan
+name: "ScanCode action"
+description: "Run ScanCode.io pipelines in your workflows"
+inputs:
+  pipelines:
+    description: "Names of the pipelines (comma-separated) and in order."
+    default: "scan_codebase"
+  output-formats:
+    description: "Output formats"
+    default: "json xlsx spdx cyclonedx"
+  inputs-path:
+    description: "Relative path within the $GITHUB_WORKSPACE for pipeline inputs"
+    default: "${{ github.workspace }}/scancode-inputs"
+  input-urls:
+    description: 'Provide one or more URLs to download for the pipeline run execution'
+    required: false
+    default: ""
+  project-name:
+    description: "Name of the project"
+    default: "scancode-action"
+  outputs-archive-name:
+    description: "Name of the outputs archive"
+    default: "scancode-outputs"
+  python-version:
+    description: "Python version"
+    default: "3.11"
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
 
-jobs:
-  scan_frontend:
-    name: Scan Frontend Dependencies
-    runs-on: ubuntu-latest
+    - name: Set up environment
+      shell: bash
+      run: |
+        echo "SECRET_KEY=$(openssl rand -base64 32)" >> $GITHUB_ENV
+        echo "SCANCODEIO_DB_NAME=scancodeio" >> $GITHUB_ENV
+        echo "SCANCODEIO_DB_USER=scancodeio" >> $GITHUB_ENV
+        echo "SCANCODEIO_DB_PASSWORD=scancodeio" >> $GITHUB_ENV
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+    - name: Start and setup the PostgreSQL service
+      shell: bash
+      run: |
+        sudo systemctl start postgresql.service
+        sudo -u postgres createuser --no-createrole --no-superuser --login --inherit --createdb ${{ env.SCANCODEIO_DB_USER }}
+        sudo -u postgres psql -c "ALTER USER ${{ env.SCANCODEIO_DB_USER }} WITH encrypted password '${{ env.SCANCODEIO_DB_PASSWORD }}'"
+        sudo -u postgres createdb --owner=scancodeio --encoding=UTF-8 ${{ env.SCANCODEIO_DB_NAME }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
+    - name: Install ScanCode.io
+      shell: bash
+      run: |
+        pip install --upgrade scancodeio
+        scanpipe migrate
 
-      # - name: Install Project Dependencies
-      #   run: npm install ~/Frontend
+    - name: Generate `--pipeline` CLI arguments
+      shell: bash
+      run: |
+        IFS=',' read -ra PIPELINES <<< "${{ inputs.pipelines }}"
+        PIPELINE_CLI_ARGS=""
+        for pipeline in "${PIPELINES[@]}"; do
+          PIPELINE_CLI_ARGS+=" --pipeline $pipeline"
+        done
+        echo "PIPELINE_CLI_ARGS=${PIPELINE_CLI_ARGS}" >> $GITHUB_ENV
 
-      - name: Install ScanCode Dependencies
-        run: |
-          sudo apt-get update && sudo apt-get upgrade -y
-          sudo apt install -y bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
-          sudo add-apt-repository ppa:deadsnakes/ppa --yes
-          sudo apt-get install -y python3.9 python3.9-distutils
+    - name: Generate `--input-url` CLI arguments
+      shell: bash
+      run: |
+        INPUT_URL_CLI_ARGS=""
+        for url in ${{ inputs.input-urls }}; do
+          INPUT_URL_CLI_ARGS+=" --input-url $url"
+        done
+        echo "INPUT_URL_CLI_ARGS=${INPUT_URL_CLI_ARGS}" >> $GITHUB_ENV
 
-      - name: Download ScanCode Toolkit
-        run: |
-          wget https://github.com/aboutcode-org/scancode-toolkit/releases/download/v32.3.2/scancode-toolkit-v32.3.2_py3.10-linux.tar.gz
-          tar -xzf scancode-toolkit-v32.3.2_py3.10-linux.tar.gz
-          chmod +x scancode-toolkit-v32.3.2/scancode
+    - name: Create project
+      shell: bash
+      run: |
+        scanpipe create-project ${{ inputs.project-name }} \
+        ${{ env.PIPELINE_CLI_ARGS }} \
+        ${{ env.INPUT_URL_CLI_ARGS }}
 
-      - name: Run ScanCode on Frontend
-        run: |
-          ./scancode-toolkit-v32.3.2/scancode --json scancode-results.json Frontend/
+    - name: Set project work directory in the environment
+      shell: bash
+      run: |
+        project_status=$(scanpipe status --project ${{ inputs.project-name }})
+        work_directory=$(echo "$project_status" | grep -oP 'Work directory:\s*\K[^\n]+')
+        echo "PROJECT_WORK_DIRECTORY=$work_directory" >> $GITHUB_ENV
 
-      - name: Upload Scan Results
-        uses: actions/upload-artifact@v4
-        with:
-          name: scancode-results
-          path: scancode-results.json
+    - name: Copy input files to project work directory
+      shell: bash
+      run: |
+        SOURCE_PATH="${{ inputs.inputs-path }}"
+        DESTINATION_PATH="${{ env.PROJECT_WORK_DIRECTORY }}/input/"
+        if [ -d "$SOURCE_PATH" ]; then
+          cp -r "$SOURCE_PATH"/* "$DESTINATION_PATH"
+        fi
 
-      - name: Check Scan Results for Issues
-        run: |
-          if grep -q '"errors": \[' scancode-results.json; then
-            echo "License or security issues detected in dependencies!"
-            exit 1
-          fi
+    - name: Run the pipelines
+      shell: bash
+      run: scanpipe execute --project ${{ inputs.project-name }} --no-color
+
+    - name: Generate outputs
+      id: scanpipe
+      shell: bash
+      run: scanpipe output
+        --project ${{ inputs.project-name }} 
+        --format ${{ inputs.output-formats }} 
+        --no-color
+
+    - name: Upload outputs
+      uses: actions/upload-artifact@v4
+      id: artifact-upload-step
+      with:
+        name: ${{ inputs.outputs-archive-name }}
+        path: ${{ env.PROJECT_WORK_DIRECTORY }}/output/*
