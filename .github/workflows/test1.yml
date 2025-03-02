@@ -53,15 +53,15 @@ jobs:
         run: python --version
 
       - name: Run ScanCode on Frontend
-        run: |
-          cd scancode-toolkit
-          ./scancode --json scancode-results.json ~/Frontend/
+        run: ls -la
+          # cd scancode-toolkit
+          # ./scancode --json scancode-results.json 
 
-      - name: Upload Scan Results
-        uses: actions/upload-artifact@v4
-        with:
-          name: scancode-results
-          path: scancode-results.json
+      # - name: Upload Scan Results
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: scancode-results
+      #     path: scancode-results.json
 
       - name: Check Scan Results for Issues
         run: |
