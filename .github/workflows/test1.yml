@@ -41,7 +41,7 @@ jobs:
 
       - name: Run ScanCode on Frontend
         run: |
-          ./scancode-toolkit/scancode --json scancode-results.json frontend/
+          ./scancode-toolkit-v32.3.2/scancode --json scancode-results.json Frontend/
 
       - name: Upload Scan Results
         uses: actions/upload-artifact@v4
