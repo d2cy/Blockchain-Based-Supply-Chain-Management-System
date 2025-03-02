@@ -1,18 +1,57 @@
-name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
-on: [push]
+name: Frontend License & Security Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
 jobs:
-  Explore-GitHub-Actions:
+  scan_frontend:
+    name: Scan Frontend Dependencies
     runs-on: ubuntu-latest
+
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
+      - name: Checkout Repository
         uses: actions/checkout@v4
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Project Dependencies
+        run: npm install
+
+      - name: Install ScanCode Dependencies
         run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+          sudo apt-get update && sudo apt-get upgrade -y
+          sudo apt install -y python-dev bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
+          sudo add-apt-repository ppa:deadsnakes/ppa --yes
+          sudo apt-get install -y python3.9 python3.9-distutils
+
+      - name: Download ScanCode Toolkit
+        run: |
+          wget https://github.com/aboutcode-org/scancode-toolkit/releases/download/v32.3.2/scancode-toolkit-v32.3.2_py3.10-linux.tar.gz
+          tar -xzf scancode-toolkit-v32.3.2_py3.10-linux.tar.gz
+          chmod +x scancode-toolkit/scancode
+
+      - name: Run ScanCode on Frontend
+        run: |
+          ./scancode-toolkit/scancode --json scancode-results.json frontend/
+
+      - name: Upload Scan Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: scancode-results
+          path: scancode-results.json
+
+      - name: Check Scan Results for Issues
+        run: |
+          if grep -q '"errors": \[' scancode-results.json; then
+            echo "License or security issues detected in dependencies!"
+            exit 1
+          fi
