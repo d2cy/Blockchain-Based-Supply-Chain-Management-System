@@ -1,3 +1,4 @@
+on: [push]
 name: "ScanCode action"
 description: "Run ScanCode.io pipelines in your workflows"
 inputs:
