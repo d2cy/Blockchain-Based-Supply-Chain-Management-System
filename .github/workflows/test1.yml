@@ -23,9 +23,6 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install Project Dependencies
-        run: npm install
-
       - name: Install ScanCode Dependencies
         run: |
           sudo apt-get update && sudo apt-get upgrade -y
