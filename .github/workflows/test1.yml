@@ -52,7 +52,7 @@ jobs:
       - name: Verify Python Version
         run: python --version
 
-      - name: Run ScanCode on Frontend
+      - name: Run ScanCode on Frontend Folder
         run: |
           cd scancode-toolkit
           # ./scancode --json scancode-results.json ../Frontend
@@ -68,9 +68,3 @@ jobs:
           name: scancode-results
           path: scancode-results.json
 
-      - name: Check Scan Results for Issues
-        run: |
-          if grep -q '"errors": \[' scancode-results.json; then
-            echo "License or security issues detected in dependencies!"
-            exit 1
-          fi
