@@ -56,7 +56,7 @@ jobs:
         run: |
           cd scancode-toolkit
           # ./scancode --json scancode-results.json ../Frontend
-          ./scancode --json ../scancode-results.json ../Frontend/ || (echo "ScanCode failed!" && exit 1)
+          ./scancode  --copyright -n 2 --json ../scancode-results.json ../Frontend/ || (echo "ScanCode failed!" && exit 1)
           
       - name: Debug - Check if results file exists
         run: ls -l scancode-results.json || echo "scancode-results.json NOT FOUND"
